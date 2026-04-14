@@ -1,0 +1,51 @@
+name: flutter_application_1
+description: TranspoX - Parcel Tracking App
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.1.0
+  cupertino_icons: ^1.0.2
+  flutter_dotenv: ^5.1.0
+  flutter_svg: ^2.0.9
+  google_sign_in: ^6.2.1
+  supabase_flutter: ^2.3.4
+  shared_preferences: ^2.2.2
+  firebase_core: ^3.1.0
+  cloud_firestore: ^5.0.2
+  firebase_auth: ^5.1.1
+  firebase_storage: ^12.0.1
+  firebase_crashlytics: ^4.0.2
+  connectivity_plus: ^6.0.3
+  geolocator: ^10.1.1
+  geocoding: ^2.2.2
+  sqflite: ^2.3.0
+  path_provider: ^2.1.1
+  intl: ^0.18.1
+  uuid: ^4.2.1
+  
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: NotoSans
+      fonts:
+        - asset: fonts/NotoSans-Regular.ttf
+        - asset: fonts/NotoSans-Italic.ttf
+          style: italic
+        - asset: fonts/NotoSans-Bold.ttf
+          weight: 700
+  assets:
+    - assets/icons/google.svg
+    - assets/google_logo.svg
+    - assets/apple_logo.svg
+    - .env
