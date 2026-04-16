@@ -293,13 +293,58 @@ class FirebaseService {
   static Future<Task> updateTask(Task task) async {
     try {
       final taskData = task.toFirebaseJson();
-
-      await firestore.collection('tasks').doc(task.id).update(taskData);
-
-      final updatedDoc = await firestore.collection('tasks').doc(task.id).get();
+      String firebaseDocId = '';
+      bool taskFound = false;
+      
+      // 1. Chercher d'abord directement avec l'ID (méthode principale)
+      try {
+        final doc = await firestore.collection('tasks').doc(task.id).get();
+        if (doc.exists) {
+          firebaseDocId = task.id;
+          taskFound = true;
+          debugPrint('Firebase: Tâche trouvée directement pour mise à jour avec ID: $firebaseDocId');
+        }
+      } catch (e) {
+        debugPrint('Firebase: Erreur recherche directe pour mise à jour: $e');
+      }
+      
+      // 2. Si non trouvé, chercher via supabaseId (cas synchronisation)
+      if (!taskFound) {
+        try {
+          final query = await firestore
+              .collection('tasks')
+              .where('supabaseId', isEqualTo: task.id)
+              .limit(1)
+              .get();
+          
+          if (query.docs.isNotEmpty) {
+            firebaseDocId = query.docs.first.id;
+            taskFound = true;
+            debugPrint('Firebase: Tâche trouvée via supabaseId pour mise à jour, ID Firebase: $firebaseDocId');
+          }
+        } catch (e) {
+          debugPrint('Firebase: Erreur recherche via supabaseId pour mise à jour: $e');
+        }
+      }
+      
+      // 3. Si toujours non trouvé, créer le document
+      if (!taskFound) {
+        debugPrint('Firebase: Tâche ${task.id} introuvable pour mise à jour - création du document');
+        final docRef = await firestore.collection('tasks').add(taskData);
+        firebaseDocId = docRef.id;
+      }
+      
+      // 4. Mettre à jour le document trouvé/créé
+      debugPrint('Firebase: Mise à jour du document $firebaseDocId...');
+      await firestore.collection('tasks').doc(firebaseDocId).update(taskData);
+      
+      final updatedDoc = await firestore.collection('tasks').doc(firebaseDocId).get();
+      debugPrint('Firebase: Tâche $firebaseDocId mise à jour avec succès');
       return Task.fromFirebaseJson(updatedDoc.id, updatedDoc.data()!);
+      
     } catch (e) {
       debugPrint('Firebase update task error: $e');
+      debugPrint('Type d\'erreur: ${e.runtimeType}');
       return task;
     }
   }
@@ -307,10 +352,59 @@ class FirebaseService {
   /// Supprime une tâche dans Firebase
   static Future<void> deleteTask(String taskId) async {
     try {
-      await firestore.collection('tasks').doc(taskId).delete();
+      debugPrint('Firebase: Début suppression de la tâche $taskId');
+      
+      String firebaseDocId = '';
+      bool taskFound = false;
+      
+      // 1. Chercher d'abord via supabaseId (méthode moderne)
+      try {
+        final query = await firestore
+            .collection('tasks')
+            .where('supabaseId', isEqualTo: taskId)
+            .limit(1)
+            .get();
+        
+        if (query.docs.isNotEmpty) {
+          firebaseDocId = query.docs.first.id;
+          taskFound = true;
+          debugPrint('Firebase: Tâche trouvée via supabaseId, ID Firebase: $firebaseDocId');
+        }
+      } catch (e) {
+        debugPrint('Firebase: Erreur recherche via supabaseId: $e');
+      }
+      
+      // 2. Si non trouvé, essayer directement avec l'ID (cas compatibilité)
+      if (!taskFound) {
+        try {
+          final doc = await firestore.collection('tasks').doc(taskId).get();
+          if (doc.exists) {
+            firebaseDocId = taskId;
+            taskFound = true;
+            debugPrint('Firebase: Tâche trouvée directement avec ID: $firebaseDocId');
+          }
+        } catch (e) {
+          debugPrint('Firebase: Erreur recherche directe: $e');
+        }
+      }
+      
+      // 3. Si toujours non trouvé, ignorer silencieusement
+      if (!taskFound) {
+        debugPrint('Firebase: Tâche $taskId introuvable - suppression ignorée (normal si seule dans Supabase)');
+        return;
+      }
+      
+      // 4. Supprimer le document trouvé
+      debugPrint('Firebase: Suppression du document $firebaseDocId...');
+      await firestore.collection('tasks').doc(firebaseDocId).delete();
+      debugPrint('Firebase: Tâche $firebaseDocId supprimée avec succès');
+      
     } catch (e) {
-      debugPrint('Firebase delete task error: $e');
-      throw Exception('Impossible de supprimer la tâche: $e');
+      debugPrint('Firebase: Erreur critique suppression: $e');
+      debugPrint('Type d\'erreur: ${e.runtimeType}');
+      
+      // Ne pas lever d'exception pour éviter de casser le flux de suppression
+      debugPrint('Firebase: Suppression Firebase échouée mais flux maintenu');
     }
   }
 

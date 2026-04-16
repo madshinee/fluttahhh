@@ -106,7 +106,7 @@ class _PageConnexionState extends State<PageConnexion> {
           
           if (user != null) {
             await ErrorReportingService.reportMessage('User authenticated successfully: ${user.email}');
-            _showSnack('Bienvenue ${user.fullname} 👋');
+            _showSnack('Welcome ${user.fullname} ');
             await Future.delayed(const Duration(milliseconds: 800));
             
             if (!mounted) return;
@@ -164,7 +164,7 @@ class _PageConnexionState extends State<PageConnexion> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red[400] : Colors.green[600],
+        backgroundColor: isError ? Colors.red[400] : Colors.pink[300],
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -455,7 +455,7 @@ class _PageConnexionState extends State<PageConnexion> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Welcome ${user.fullname}!'),
-            backgroundColor: Colors.green[600],
+            backgroundColor: Colors.pink[200],
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),

@@ -10,6 +10,7 @@ class User {
   final String country;
   final String state;
   final String address;
+  final String? photoUrl; // Photo de profil optionnelle
 
   User({
     required this.id,
@@ -19,6 +20,7 @@ class User {
     this.country = '',
     this.state = '',
     this.address = '',
+    this.photoUrl,
   });
 
   User copyWith({
@@ -29,6 +31,7 @@ class User {
     String? country,
     String? state,
     String? address,
+    String? photoUrl,
   }) {
     return User(
       id: id ?? this.id,
@@ -38,6 +41,7 @@ class User {
       country: country ?? this.country,
       state: state ?? this.state,
       address: address ?? this.address,
+      photoUrl: photoUrl ?? this.photoUrl,
     );
   }
 
@@ -50,6 +54,7 @@ class User {
       country: json['country'] as String? ?? '',
       state: json['state'] as String? ?? '',
       address: json['address'] as String? ?? '',
+      photoUrl: json['photoUrl'] as String?,
     );
   }
 
@@ -62,6 +67,7 @@ class User {
       country: json['country'] as String? ?? '',
       state: json['state'] as String? ?? '',
       address: json['address'] as String? ?? '',
+      photoUrl: json['photoUrl'] as String?,
     );
   }
 
@@ -74,6 +80,7 @@ class User {
       country: user.userMetadata?['country'] as String? ?? '',
       state: user.userMetadata?['state'] as String? ?? '',
       address: user.userMetadata?['address'] as String? ?? '',
+      photoUrl: user.userMetadata?['photoUrl'] as String? ?? user.userMetadata?['avatar_url'] as String?,
     );
   }
 
@@ -86,6 +93,7 @@ class User {
       country: json['country'] as String? ?? '',
       state: json['state'] as String? ?? '',
       address: json['address'] as String? ?? '',
+      photoUrl: json['photoUrl'] as String?,
     );
   }
 
@@ -98,6 +106,7 @@ class User {
       country: '',
       state: '',
       address: '',
+      photoUrl: user.photoURL,
     );
   }
 
@@ -110,6 +119,7 @@ class User {
       'country': country,
       'state': state,
       'address': address,
+      'photoUrl': photoUrl,
     };
   }
 
@@ -122,6 +132,7 @@ class User {
       'country': country,
       'state': state,
       'address': address,
+      'photoUrl': photoUrl,
     };
   }
 
@@ -133,6 +144,7 @@ class User {
       'country': country,
       'state': state,
       'address': address,
+      'photoUrl': photoUrl,
       'createdAt': FieldValue.serverTimestamp(),
     };
   }
@@ -145,7 +157,8 @@ class User {
       "phone": "$phone",
       "country": "$country",
       "state": "$state",
-      "address": "$address"
+      "address": "$address",
+      "photoUrl": "$photoUrl"
     }''';
   }
 
@@ -158,6 +171,7 @@ class User {
     final country = RegExp(r'"country":\s*"([^"]+)"').firstMatch(jsonString)?.group(1) ?? '';
     final state = RegExp(r'"state":\s*"([^"]+)"').firstMatch(jsonString)?.group(1) ?? '';
     final address = RegExp(r'"address":\s*"([^"]+)"').firstMatch(jsonString)?.group(1) ?? '';
+    final photoUrl = RegExp(r'"photoUrl":\s*"([^"]+)"').firstMatch(jsonString)?.group(1) ?? '';
     
     return User(
       id: id,
@@ -167,6 +181,7 @@ class User {
       country: country,
       state: state,
       address: address,
+      photoUrl: photoUrl.isNotEmpty ? photoUrl : null,
     );
   }
 }

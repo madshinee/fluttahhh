@@ -28,6 +28,7 @@ dependencies:
   path_provider: ^2.1.1
   intl: ^0.18.1
   uuid: ^4.2.1
+  provider: ^6.1.1
   
 dev_dependencies:
   flutter_test:
@@ -46,6 +47,7 @@ flutter:
           weight: 700
   assets:
     - assets/icons/google.svg
+    - assets/icons/logotask.png
     - assets/google_logo.svg
     - assets/apple_logo.svg
     - .env

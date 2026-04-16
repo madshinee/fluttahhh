@@ -122,6 +122,7 @@ class Task {
 
   Map<String, dynamic> toFirebaseJson() {
     return {
+      'supabaseId': id, // Ajouter l'ID Supabase pour la synchronisation
       'title': title,
       'description': description,
       'status': status.name,

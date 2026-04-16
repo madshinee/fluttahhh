@@ -221,21 +221,7 @@ class OfflineSyncService {
     await _savePendingOperations();
     debugPrint('All offline operations cleared');
   }
-
-  /// Simule une panne de provider pendant la synchronisation
-  static void simulateProviderFailure(dynamic provider) {
-    DataProviderService.forcedFailureProvider = provider;
-    DataProviderService.simulateFailure = true;
-    debugPrint('Simulating failure for provider: ${provider.name}');
-  }
-
-  /// Arrête la simulation de panne
-  static void stopFailureSimulation() {
-    DataProviderService.simulateFailure = false;
-    DataProviderService.forcedFailureProvider = null;
-    debugPrint('Stopped failure simulation');
-  }
-
+  
   // Méthodes privées
 
   static Future<void> _loadPendingOperations() async {

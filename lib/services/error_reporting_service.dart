@@ -1,6 +1,7 @@
 import 'dart:io' show Platform, File;
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
@@ -14,11 +15,11 @@ class ErrorReportingService {
     if (_initialized) return;
 
     try {
-      // In a real app, you would initialize Firebase Crashlytics here
-      // await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+      // Initialize Firebase Crashlytics
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
 
       _initialized = true;
-      debugPrint('Error reporting service initialized');
+      debugPrint('Error reporting service initialized with Crashlytics');
     } catch (e) {
       debugPrint('Failed to initialize error reporting: $e');
     }
@@ -57,28 +58,35 @@ class ErrorReportingService {
     }
 
     try {
-      // In a real app, send to Crashlytics
-      // if (fatal) {
-      //   await FirebaseCrashlytics.instance.recordError(
-      //     error, 
-      //     stackTrace,
-      //     fatal: true,
-      //     information: context?.entries.map((e) => DiagnosticsProperty(e.key, e.value)).toList(),
-      //   );
-      // } else {
-      //   await FirebaseCrashlytics.instance.recordError(
-      //     error, 
-      //     stackTrace,
-      //     information: context?.entries.map((e) => DiagnosticsProperty(e.key, e.value)).toList(),
-      //   );
-      // }
+      // Send to Crashlytics
+      List<Object> information = [];
+      if (context != null) {
+        for (final entry in context.entries) {
+          information.add('${entry.key}: ${entry.value}');
+        }
+      }
+      
+      if (fatal) {
+        await FirebaseCrashlytics.instance.recordError(
+          error, 
+          stackTrace,
+          fatal: true,
+          information: information,
+        );
+      } else {
+        await FirebaseCrashlytics.instance.recordError(
+          error, 
+          stackTrace,
+          information: information,
+        );
+      }
 
       // Store locally for fallback
       await _storeErrorLocally(errorReport);
 
-      debugPrint('Error reported successfully');
+      debugPrint('Error reported successfully to Crashlytics');
     } catch (e) {
-      debugPrint('Failed to report error: $e');
+      debugPrint('Failed to report error to Crashlytics: $e');
       // Fallback to local storage only
       await _storeErrorLocally(errorReport);
     }
@@ -106,12 +114,12 @@ class ErrorReportingService {
     }
 
     try {
-      // In a real app, send to Crashlytics
-      // await FirebaseCrashlytics.instance.log('$message${context != null ? ' - $context' : ''}');
+      // Send to Crashlytics
+      await FirebaseCrashlytics.instance.log('$message${context != null ? ' - $context' : ''}');
 
       await _storeErrorLocally(logEntry);
     } catch (e) {
-      debugPrint('Failed to log message: $e');
+      debugPrint('Failed to log message to Crashlytics: $e');
     }
   }
 
@@ -121,8 +129,8 @@ class ErrorReportingService {
     }
 
     try {
-      // In a real app, set user ID in Crashlytics
-      // await FirebaseCrashlytics.instance.setUserIdentifier(userId);
+      // Set user ID in Crashlytics
+      await FirebaseCrashlytics.instance.setUserIdentifier(userId);
       debugPrint('User identifier set: $userId');
     } catch (e) {
       debugPrint('Failed to set user identifier: $e');
@@ -135,8 +143,8 @@ class ErrorReportingService {
     }
 
     try {
-      // In a real app, set custom key in Crashlytics
-      // await FirebaseCrashlytics.instance.setCustomKey(key, value);
+      // Set custom key in Crashlytics
+      await FirebaseCrashlytics.instance.setCustomKey(key, value);
       debugPrint('Custom key set: $key = $value');
     } catch (e) {
       debugPrint('Failed to set custom key: $e');

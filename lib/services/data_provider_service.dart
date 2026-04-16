@@ -10,8 +10,6 @@ import '../services/firebase_service.dart';
 enum ProviderType { supabase, firebase }
 
 class DataProviderService {
-  static bool _simulateFailure = false;
-  static ProviderType? _forcedFailureProvider;
   static bool _initialized = false;
   static ProviderType? _currentAuthProvider;
   
@@ -106,16 +104,8 @@ class DataProviderService {
     }
   }
 
-  static set simulateFailure(bool simulate) {
-    _simulateFailure = simulate;
-    debugPrint('Provider failure simulation: ${simulate ? "ENABLED" : "DISABLED"}');
-  }
-
-  static set forcedFailureProvider(ProviderType? provider) {
-    _forcedFailureProvider = provider;
-    debugPrint('Forced failure provider: ${provider?.name ?? "None"}');
-  }
-
+  
+  
   // Get configuration methods
   static List<ProviderType> getProviderPriority() {
     if (!_initialized) {
@@ -252,11 +242,6 @@ class DataProviderService {
     for (ProviderType providerType in priority) {
       if (!activeProviders.contains(providerType)) continue;
 
-      if (_shouldSimulateFailure(providerType)) {
-        debugPrint('Simulating failure for ${providerType.name}');
-        continue;
-      }
-
       try {
         final result = await _getUsersFromProvider(providerType);
         debugPrint('Successfully got ${result.length} users from ${providerType.name}');
@@ -296,11 +281,7 @@ class DataProviderService {
 
     // Create futures for all active providers
     for (ProviderType providerType in activeProviders) {
-      if (_shouldSimulateFailure(providerType)) {
-        debugPrint('Simulating failure for ${providerType.name} during simultaneous create');
-        continue;
-      }
-
+      
       futures.add(_createUserInProvider(user, providerType));
     }
 
@@ -337,11 +318,7 @@ class DataProviderService {
     for (ProviderType providerType in priority) {
       if (!activeProviders.contains(providerType)) continue;
 
-      if (_shouldSimulateFailure(providerType)) {
-        debugPrint('Simulating failure for ${providerType.name} during sequential create');
-        continue;
-      }
-
+      
       try {
         final result = await _createUserInProvider(user, providerType);
         createdUsers.add(result);
@@ -369,11 +346,7 @@ class DataProviderService {
     for (ProviderType providerType in priority) {
       if (!activeProviders.contains(providerType)) continue;
 
-      if (_shouldSimulateFailure(providerType)) {
-        debugPrint('Simulating failure for ${providerType.name} during find');
-        continue;
-      }
-
+      
       try {
         final result = await _findUserInProvider(identifier, providerType);
         if (result != null) {
@@ -399,11 +372,7 @@ class DataProviderService {
     for (ProviderType providerType in priority) {
       if (!activeProviders.contains(providerType)) continue;
 
-      if (_shouldSimulateFailure(providerType)) {
-        debugPrint('Simulating failure for ${providerType.name} during email check');
-        continue;
-      }
-
+      
       try {
         final result = await _emailExistsInProvider(email, providerType);
         if (result) {
@@ -431,11 +400,7 @@ class DataProviderService {
     debugPrint('Signing up user with email across providers: ${activeProviders.map((e) => e.name)}');
 
     for (ProviderType providerType in activeProviders) {
-      if (_shouldSimulateFailure(providerType)) {
-        debugPrint('Simulating failure for ${providerType.name} during signup');
-        continue;
-      }
-
+      
       try {
         await _signUpInProvider(email, password, providerType);
         debugPrint('Successfully signed up user in ${providerType.name}');
@@ -462,11 +427,7 @@ class DataProviderService {
     for (ProviderType providerType in priority) {
       if (!activeProviders.contains(providerType)) continue;
 
-      if (_shouldSimulateFailure(providerType)) {
-        debugPrint('Simulating failure for ${providerType.name} during signin');
-        continue;
-      }
-
+      
       try {
         await _signInInProvider(email, password, providerType);
         debugPrint('✅ Successfully signed in user with ${providerType.name}');
@@ -552,11 +513,7 @@ class DataProviderService {
     for (ProviderType providerType in priority) {
       if (!activeProviders.contains(providerType)) continue;
 
-      if (_shouldSimulateFailure(providerType)) {
-        debugPrint('Simulating failure for ${providerType.name} during get tasks');
-        continue;
-      }
-
+      
       try {
         final result = await _getTasksFromProvider(providerType, userId);
         debugPrint('Successfully got ${result.length} tasks from ${providerType.name}');
@@ -615,11 +572,7 @@ class DataProviderService {
 
     // Create futures for all active providers
     for (ProviderType providerType in activeProviders) {
-      if (_shouldSimulateFailure(providerType)) {
-        debugPrint('Simulating failure for ${providerType.name} during simultaneous task create');
-        continue;
-      }
-
+      
       futures.add(_createTaskInProvider(task, providerType));
     }
 
@@ -656,11 +609,7 @@ class DataProviderService {
     for (ProviderType providerType in priority) {
       if (!activeProviders.contains(providerType)) continue;
 
-      if (_shouldSimulateFailure(providerType)) {
-        debugPrint('Simulating failure for ${providerType.name} during sequential task create');
-        continue;
-      }
-
+      
       try {
         final result = await _createTaskInProvider(task, providerType);
         createdTasks.add(result);
@@ -682,31 +631,17 @@ class DataProviderService {
   static Future<Task> updateTask(Task task) async {
     if (!_initialized) await initialize();
 
-    final priority = getProviderPriority();
     final activeProviders = getActiveProviders();
 
-    debugPrint('Updating task with priority: ${priority.map((e) => e.name)}');
+    debugPrint('Updating task with simultaneous writes on: ${activeProviders.map((e) => e.name)}');
 
-    for (ProviderType providerType in priority) {
-      if (!activeProviders.contains(providerType)) continue;
-
-      if (_shouldSimulateFailure(providerType)) {
-        debugPrint('Simulating failure for ${providerType.name} during task update');
-        continue;
-      }
-
-      try {
-        final result = await _updateTaskInProvider(task, providerType);
-        debugPrint('Successfully updated task in ${providerType.name}');
-        return result;
-      } catch (e) {
-        debugPrint('Failed to update task in ${providerType.name}: $e');
-        continue;
-      }
+    if (simultaneousWrites) {
+      // SIMULTANEOUS WRITES - Update all active providers at once
+      return await _updateTaskSimultaneous(task, activeProviders);
+    } else {
+      // SEQUENTIAL WRITES - Try providers in priority order
+      return await _updateTaskSequential(task);
     }
-
-    debugPrint('All providers failed during task update');
-    return task; // Return original task if all fail
   }
 
   static Future<void> deleteTask(String taskId) async {
@@ -715,31 +650,42 @@ class DataProviderService {
     final priority = getProviderPriority();
     final activeProviders = getActiveProviders();
 
-    debugPrint('Deleting task with priority: ${priority.map((e) => e.name)}');
+    debugPrint('=== DÉBUT SUPPRESSION TÂCHE $taskId ===');
+    debugPrint('Priorité: ${priority.map((e) => e.name)}');
+    debugPrint('Providers actifs: ${activeProviders.map((e) => e.name)}');
 
     List<String> successfulDeletes = [];
+    List<String> failedDeletes = [];
 
     for (ProviderType providerType in priority) {
-      if (!activeProviders.contains(providerType)) continue;
-
-      if (_shouldSimulateFailure(providerType)) {
-        debugPrint('Simulating failure for ${providerType.name} during task delete');
+      if (!activeProviders.contains(providerType)) {
+        debugPrint('Provider ${providerType.name} n\'est pas actif, skip');
         continue;
       }
 
+      
       try {
+        debugPrint('Tentative de suppression depuis ${providerType.name}...');
         await _deleteTaskInProvider(taskId, providerType);
         successfulDeletes.add(providerType.name);
-        debugPrint('Successfully deleted task from ${providerType.name}');
+        debugPrint('SUCCESS: Tâche supprimée de ${providerType.name}');
       } catch (e) {
-        debugPrint('Failed to delete task from ${providerType.name}: $e');
+        failedDeletes.add(providerType.name);
+        debugPrint('ÉCHEC: Impossible de supprimer de ${providerType.name}: $e');
+        debugPrint('Type d\'erreur: ${e.runtimeType}');
         continue;
       }
     }
 
+    debugPrint('=== RÉSULTAT SUPPRESSION ===');
+    debugPrint('Succès: ${successfulDeletes.join(", ")}');
+    debugPrint('Échecs: ${failedDeletes.join(", ")}');
+
     if (successfulDeletes.isEmpty) {
-      debugPrint('All providers failed during task delete');
+      debugPrint('TOUS LES PROVIDERS ONT ÉCHOUÉ - LEVE EXCEPTION');
       throw Exception('Impossible de supprimer la tâche: tous les providers ont échoué');
+    } else {
+      debugPrint('SUPPRESSION TERMINÉE AVEC SUCCÈS');
     }
   }
 
@@ -752,11 +698,7 @@ class DataProviderService {
     for (ProviderType providerType in priority) {
       if (!activeProviders.contains(providerType)) continue;
 
-      if (_shouldSimulateFailure(providerType)) {
-        debugPrint('Simulating failure for ${providerType.name} during task find');
-        continue;
-      }
-
+      
       try {
         final result = await _findTaskInProvider(taskId, providerType);
         if (result != null) {
@@ -777,10 +719,7 @@ class DataProviderService {
   // ─── Private Helper Methods ───────────────────────────────────────────────────
 
 
-  static bool _shouldSimulateFailure(ProviderType providerType) {
-    return _simulateFailure && (_forcedFailureProvider == null || _forcedFailureProvider == providerType);
-  }
-
+  
   static Future<List<app_user.User>> _getUsersFromProvider(ProviderType provider) async {
     switch (provider) {
       case ProviderType.supabase:
@@ -877,6 +816,61 @@ class DataProviderService {
     }
   }
 
+  static Future<Task> _updateTaskSimultaneous(Task task, List<ProviderType> activeProviders) async {
+    final futures = <Future<Task>>[];
+
+    // Create futures for all active providers
+    for (ProviderType providerType in activeProviders) {
+      
+      futures.add(_updateTaskInProvider(task, providerType));
+    }
+
+    if (futures.isEmpty) {
+      debugPrint('No available providers for simultaneous task update');
+      return task;
+    }
+
+    try {
+      // Wait for all updates to complete
+      final results = await Future.wait(futures);
+
+      if (results.isNotEmpty) {
+        debugPrint('Successfully updated task in ${results.length} providers simultaneously');
+        return results.first; // Return first successful result
+      }
+    } catch (e) {
+      debugPrint('Error in simultaneous task update: $e');
+      // Fallback to sequential if simultaneous fails
+      return await _updateTaskSequential(task);
+    }
+
+    return task;
+  }
+
+  static Future<Task> _updateTaskSequential(Task task) async {
+    final priority = getProviderPriority();
+    final activeProviders = getActiveProviders();
+
+    debugPrint('Updating task sequentially with priority: ${priority.map((e) => e.name)}');
+
+    for (ProviderType providerType in priority) {
+      if (!activeProviders.contains(providerType)) continue;
+
+      
+      try {
+        final result = await _updateTaskInProvider(task, providerType);
+        debugPrint('Successfully updated task in ${providerType.name}');
+        return result;
+      } catch (e) {
+        debugPrint('Failed to update task in ${providerType.name}: $e');
+        continue;
+      }
+    }
+
+    debugPrint('All providers failed during task update');
+    return task; // Return original task if all fail
+  }
+
   static Future<Task> _updateTaskInProvider(Task task, ProviderType provider) async {
     switch (provider) {
       case ProviderType.supabase:
@@ -909,8 +903,7 @@ class DataProviderService {
 
     for (ProviderType targetProvider in activeProviders) {
       if (targetProvider == sourceProvider) continue;
-      if (_shouldSimulateFailure(targetProvider)) continue;
-
+      
       try {
         for (final task in tasks) {
           // Vérifie si la tâche existe déjà avant d'écrire → évite les doublons
@@ -954,13 +947,18 @@ class DataProviderService {
 
     for (ProviderType targetProvider in activeProviders) {
       if (targetProvider == sourceProvider) continue;
-      if (_shouldSimulateFailure(targetProvider)) continue;
-
+      
       try {
         debugPrint('SYNC USERS: Syncing ${users.length} users to ${targetProvider.name}');
         for (final user in users) {
-          debugPrint('SYNC USERS: Creating user ${user.id} in ${targetProvider.name}');
-          await _createUserInProvider(user, targetProvider);
+          // Vérifie si l'utilisateur existe déjà avant d'écrire pour éviter les doublons
+          final existing = await _findUserInProvider(user.email, targetProvider);
+          if (existing == null) {
+            debugPrint('SYNC USERS: Creating user ${user.email} in ${targetProvider.name}');
+            await _createUserInProvider(user, targetProvider);
+          } else {
+            debugPrint('SYNC USERS: User ${user.email} already exists in ${targetProvider.name}, skipping sync');
+          }
         }
         debugPrint('Synced ${users.length} users to ${targetProvider.name}');
       } catch (e) {

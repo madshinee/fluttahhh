@@ -131,7 +131,7 @@ class _PagePhoneOTPState extends State<PagePhoneOTP> {
           }
         }
         
-        _showSnack('Bienvenue ${user.fullname} 👋');
+        _showSnack('Welcome ${user.fullname} !');
         await Future.delayed(const Duration(milliseconds: 800));
         
         if (!mounted) return;

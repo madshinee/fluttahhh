@@ -534,6 +534,28 @@ class OfflineService {
     debugPrint('All offline data cleared');
   }
 
+  static Future<void> saveTasks(List<Task> tasks, {required String userId}) async {
+    final db = database;
+    
+    for (final task in tasks) {
+      await saveTask(task, synced: true, operation: null, pendingSync: false);
+    }
+    
+    debugPrint('Saved ${tasks.length} tasks to offline cache for user $userId');
+  }
+
+  static Future<void> clearOfflineTasks({required String userId}) async {
+    final db = database;
+    
+    await db.delete(
+      'tasks',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+    );
+    
+    debugPrint('Cleared offline tasks for user $userId');
+  }
+
   static Future<void> close() async {
     if (_database != null) {
       await _database!.close();
